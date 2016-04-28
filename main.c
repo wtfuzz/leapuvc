@@ -7,8 +7,6 @@
 
 typedef struct _leap_t
 {
-    uvc_frame_t *bgr;
-    IplImage *cvImg;
     IplImage *left;
     IplImage *right;
     
@@ -20,29 +18,8 @@ void cb(uvc_frame_t *frame, void *ptr) {
     uvc_error_t ret;
     uint8_t *data = (uint8_t *)frame->data;
 
-    if(leap->bgr == NULL)
+    if(leap->left == NULL)
     {
-        leap->bgr = uvc_allocate_frame(frame->width * frame->height * 3);
-        if (!leap->bgr) {
-            printf("unable to allocate bgr frame!");
-            return;
-        }
-    }
-
-    /* Do the BGR conversion */
-    ret = uvc_any2bgr(frame, leap->bgr);
-    if (ret) {
-        uvc_perror(ret, "uvc_any2bgr");
-        return;
-    }
-
-    if(leap->cvImg == NULL)
-    {
-        leap->cvImg = cvCreateImageHeader(
-                cvSize(frame->width, frame->height),
-                IPL_DEPTH_8U,
-                3);
-
         leap->left = cvCreateImage(
                 cvSize(frame->width, frame->height),
                 IPL_DEPTH_8U,
@@ -54,11 +31,24 @@ void cb(uvc_frame_t *frame, void *ptr) {
                 1);
     }
 
+    {
+        int i,j;
+        for(i=0;i<frame->height;i++)
+        {
+            for(j=0;j<frame->width;j++)
+            {
+                leap->left->imageData[j+i*frame->width] = data[j*2+i*frame->width*2];
+                leap->right->imageData[j+i*frame->width] = data[j*2+1+i*frame->width*2];
+            }
+        }
+    }
+
     leap->count++;
 
-    cvSetData(leap->cvImg, leap->bgr->data, leap->bgr->width * 3); 
-    cvNamedWindow("Test", CV_WINDOW_AUTOSIZE);
-    cvShowImage("Test", leap->cvImg);
+    cvNamedWindow("Left", CV_WINDOW_AUTOSIZE);
+    cvNamedWindow("Right", CV_WINDOW_AUTOSIZE);
+    cvShowImage("Left", leap->left);
+    cvShowImage("Right", leap->right);
 
     cvWaitKey(1);
 }
