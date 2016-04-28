@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 
             uvc_print_diag(devh, stderr);
 
-            res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_ANY, 640, 480, 57);
+            res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_ANY, 640, 240, 115);
             if(res < 0)
             {
                 printf("stream_ctrl_format_size failed\n");
