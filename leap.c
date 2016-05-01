@@ -38,7 +38,8 @@ void cb(uvc_frame_t *frame, void *ptr) {
         }
     }
 
-    //process(leap);
+    if(leap->callback)
+      (*leap->callback)(leap);
 
     pthread_mutex_unlock(&leap->lock);
 
@@ -132,12 +133,14 @@ void leap_diag(leap_t *leap)
   uvc_print_diag(leap->devh, stderr);
 }
 
-int leap_open(leap_t **leap)
+int leap_open(leap_t **leap, leap_callback_t callback)
 {
   uvc_stream_ctrl_t ctrl;
   uvc_error_t res;
 
   *leap = (leap_t *)calloc(1, sizeof(leap_t));
+
+  (*leap)->callback = callback;
 
   res = uvc_init(&(*leap)->ctx, NULL);
   if (res < 0) {

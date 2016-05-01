@@ -12,10 +12,15 @@ static void process(leap_t *leap)
   cvAdd(leap->left, leap->right, leap->i, NULL);
 }
 
+void callback(leap_t *leap)
+{
+  process(leap);
+}
+
 int main(int argc, char **argv) {
   leap_t *leap;
 
-  leap_open(&leap);
+  leap_open(&leap, &callback);
   leap_diag(leap);
 
   while(1)
