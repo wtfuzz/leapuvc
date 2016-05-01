@@ -1,14 +1,18 @@
 #include <libuvc/libuvc.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <pthread.h>
 
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+#include <opencv2/highgui/highgui_c.h>
 
 typedef struct _leap_t
 {
     IplImage *left;
     IplImage *right;
+
+    IplImage *i;
+
+    pthread_mutex_t lock;
     
     uint64_t count;
 } leap_t;
@@ -29,7 +33,14 @@ void cb(uvc_frame_t *frame, void *ptr) {
                 cvSize(frame->width, frame->height),
                 IPL_DEPTH_8U,
                 1);
+
+        leap->i = cvCreateImage(
+          cvSize(frame->width, frame->height),
+          IPL_DEPTH_8U,
+          1);
     }
+
+    pthread_mutex_lock(&leap->lock);
 
     {
         int i,j;
@@ -43,14 +54,9 @@ void cb(uvc_frame_t *frame, void *ptr) {
         }
     }
 
+    pthread_mutex_unlock(&leap->lock);
+
     leap->count++;
-
-    cvNamedWindow("Left", CV_WINDOW_AUTOSIZE);
-    cvNamedWindow("Right", CV_WINDOW_AUTOSIZE);
-    cvShowImage("Left", leap->left);
-    cvShowImage("Right", leap->right);
-
-    cvWaitKey(1);
 }
 
 int main(int argc, char **argv) {
@@ -61,6 +67,9 @@ int main(int argc, char **argv) {
     uvc_error_t res;
 
     leap_t leap;
+
+    cvNamedWindow("Left", CV_WINDOW_AUTOSIZE|CV_GUI_EXPANDED);
+    cvNamedWindow("Right", CV_WINDOW_AUTOSIZE|CV_GUI_EXPANDED);
 
     memset(&leap, 0, sizeof(leap_t));
 
@@ -86,15 +95,12 @@ int main(int argc, char **argv) {
             uint16_t saturation;
             uint16_t x;
 
-            /* Print out a message containing all the information that libuvc
-             * knows about the device */
-
             uvc_set_white_balance_temperature(devh, 0x7f);
 
             for(x=0x00;x<=0x0d;x++)
-                uvc_set_sharpness(devh, x);
+              uvc_set_sharpness(devh, x);
             for(x=0x64;x<=0xff;x++)
-                uvc_set_sharpness(devh, x);
+              uvc_set_sharpness(devh, x);
 
             uvc_set_sharpness(devh, 0x62);
             uvc_set_sharpness(devh, 0x63);
@@ -166,7 +172,7 @@ int main(int argc, char **argv) {
 
             uvc_print_diag(devh, stderr);
 
-            res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_ANY, 640, 240, 115);
+            res = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_ANY, 640, 480, 57);
             if(res < 0)
             {
                 printf("stream_ctrl_format_size failed\n");
@@ -186,7 +192,15 @@ int main(int argc, char **argv) {
                     puts("Streaming...");
 
                     while(1)
-                        sleep(1);
+                    {
+                        if(leap.left != NULL) {
+                          pthread_mutex_lock(&leap.lock);
+                          cvShowImage("Left", leap.left);
+                          cvShowImage("Right", leap.right);
+                          pthread_mutex_unlock(&leap.lock);
+                        }
+                        cvWaitKey(33);
+                    }
 
                     /* End the stream. Blocks until last callback is serviced */
                     uvc_stop_streaming(devh);
