@@ -15,6 +15,8 @@ static void process(leap_t *leap)
 void callback(leap_t *leap)
 {
   process(leap);
+
+  leap_calibrate_frame(leap);
 }
 
 int main(int argc, char **argv) {
