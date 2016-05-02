@@ -16,6 +16,8 @@ struct _leap_t
   IplImage *left;
   IplImage *right;
 
+  IplImage *work;
+
   IplImage *i;
 
   pthread_mutex_t lock;
@@ -29,5 +31,7 @@ struct _leap_t
 int leap_open(leap_t **leap, leap_callback_t callback);
 int leap_close(leap_t *leap);
 void leap_diag(leap_t *leap);
+
+int leap_calibrate_frame(leap_t *leap);
 
 #endif

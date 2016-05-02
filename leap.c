@@ -18,6 +18,11 @@ void cb(uvc_frame_t *frame, void *ptr) {
                 IPL_DEPTH_8U,
                 1);
 
+        leap->work = cvCreateImage(
+          cvSize(frame->width, frame->height),
+          IPL_DEPTH_8U,
+          1);
+
         leap->i = cvCreateImage(
           cvSize(frame->width, frame->height),
           IPL_DEPTH_8U,
