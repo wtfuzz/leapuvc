@@ -1,10 +1,23 @@
 #include <pthread.h>
 #include "leap.h"
 
+#include <opencv2/highgui/highgui_c.h>
+
 void cb(uvc_frame_t *frame, void *ptr) {
     leap_t *leap = (leap_t *)ptr;
     uvc_error_t ret;
-    uint8_t *data = (uint8_t *)frame->data;
+    uint8_t *data;
+
+    if(frame == NULL)
+      return;
+
+    data = (uint8_t *)frame->data;
+
+    if(data == NULL)
+      return;
+
+    if(frame->width == 0 || frame->height == 0)
+      return;
 
     if(leap->left == NULL)
     {
@@ -145,6 +158,8 @@ int leap_open(leap_t **leap, leap_callback_t callback)
 
   *leap = (leap_t *)calloc(1, sizeof(leap_t));
 
+  pthread_mutex_init(&(*leap)->lock, NULL);
+
   (*leap)->callback = callback;
 
   res = uvc_init(&(*leap)->ctx, NULL);
@@ -166,6 +181,36 @@ int leap_open(leap_t **leap, leap_callback_t callback)
 
   res = uvc_start_streaming((*leap)->devh, &ctrl, cb, (void *)*leap, 0);
   
+  return 0;
+}
+
+int leap_run(leap_t *leap)
+{
+  while(1)
+  {
+    int key;
+    pthread_mutex_lock(&leap->lock);
+
+/*
+    if(leap->left != NULL) {
+      cvShowImage("Left", leap->left);
+      cvShowImage("Right", leap->right);
+      cvShowImage("work", leap->work);
+      cvShowImage("i", leap->i);
+    }
+*/
+
+    key = cvWaitKey(33);
+
+    if(leap->render_callback && leap->left != NULL)
+    {
+      (*leap->render_callback)(leap, key);
+    }
+    pthread_mutex_unlock(&leap->lock);
+
+    if(key == 'Q')
+      break;
+  }
   return 0;
 }
 
